@@ -1,0 +1,175 @@
+hostname R1
+!
+boot-start-marker
+boot-end-marker
+!
+!
+!
+no aaa new-model
+ethernet lmi ce
+!
+!
+!
+mmi polling-interval 60
+no mmi auto-configure
+no mmi pvc
+mmi snmp-timeout 180
+!
+!
+!
+!
+!
+no ip icmp rate-limit unreachable
+!
+!
+!
+!
+ip dhcp pool VLAN50_POOL
+ network 192.168.50.0 255.255.255.0
+ default-router 192.168.50.254
+!
+ip dhcp pool VLAN60_POOL
+ network 192.168.60.0 255.255.255.0
+ default-router 192.168.60.254
+!
+!
+!
+no ip domain lookup
+ip cef
+no ipv6 cef
+!
+multilink bundle-name authenticated
+!
+!
+!
+!
+!
+redundancy
+!
+no cdp log mismatch duplex
+!
+ip tcp synwait-time 5
+!
+!
+crypto ikev2 proposal IKEV2_PROP
+ encryption aes-cbc-256
+ integrity sha256
+ group 14
+!
+crypto ikev2 policy IKEV2_POL
+ proposal IKEV2_PROP
+!
+crypto ikev2 keyring DMVPN_KEYRING
+ peer ANY
+  address 0.0.0.0 0.0.0.0
+  pre-shared-key local Itla1252
+  pre-shared-key remote Itla1252
+ !
+!
+!
+crypto ikev2 profile IKEV2_PROF
+ match identity remote address 0.0.0.0
+ identity local address 203.0.113.2
+ authentication local pre-share
+ authentication remote pre-share
+ keyring local DMVPN_KEYRING
+!
+!
+!
+crypto ipsec transform-set TS esp-aes 256 esp-sha256-hmac
+ mode transport
+!
+crypto ipsec profile DMVPN_IPSEC_PROF
+ set transform-set TS
+ set ikev2-profile IKEV2_PROF
+!
+!
+!
+!
+!
+!
+!
+interface Tunnel0
+ bandwidth 1000
+ ip address 10.12.52.1 255.255.255.252
+ no ip redirects
+ ip mtu 1000
+ no ip next-hop-self eigrp 100
+ no ip split-horizon eigrp 100
+ ip nhrp map multicast dynamic
+ ip nhrp network-id 1
+ ip nhrp redirect
+ ip tcp adjust-mss 960
+ tunnel source GigabitEthernet0/0
+ tunnel mode gre multipoint
+ tunnel protection ipsec profile DMVPN_IPSEC_PROF
+!
+interface GigabitEthernet0/0
+ ip address 203.0.113.2 255.255.255.252
+ ip nat outside
+ ip virtual-reassembly in
+ duplex auto
+ speed auto
+ media-type rj45
+!
+interface GigabitEthernet0/1
+ no ip address
+ duplex full
+ speed auto
+ media-type rj45
+!
+interface GigabitEthernet0/1.50
+ encapsulation dot1Q 50
+ ip address 192.168.50.254 255.255.255.0
+ ip access-group SEGURIDAD_LAN out
+ ip nat inside
+ ip virtual-reassembly in
+!
+interface GigabitEthernet0/1.60
+ encapsulation dot1Q 60
+ ip address 192.168.60.254 255.255.255.0
+ ip access-group SEGURIDAD_LAN out
+ ip nat inside
+ ip virtual-reassembly in
+!
+interface GigabitEthernet0/2
+ no ip address
+ shutdown
+ duplex auto
+ speed auto
+ media-type rj45
+!
+interface GigabitEthernet0/3
+ no ip address
+ shutdown
+ duplex auto
+ speed auto
+ media-type rj45
+!
+!
+router eigrp 100
+ network 10.12.52.0 0.0.0.3
+ network 192.168.50.0
+ network 192.168.60.0
+!
+ip forward-protocol nd
+!
+!
+no ip http server
+no ip http secure-server
+ip nat inside source list 1 interface GigabitEthernet0/0 overload
+ip route 0.0.0.0 0.0.0.0 203.0.113.1
+!
+ip access-list extended BLOQUEAR_ICMP_VLAN50
+ permit ip any any
+ deny   icmp any 192.168.50.0 0.0.0.255 echo
+ip access-list extended SEGURIDAD_LAN
+ permit udp any any eq bootps
+ permit udp any any eq bootpc
+ deny   icmp any 192.168.50.0 0.0.0.255 echo
+ permit ip any any
+!
+!
+!
+access-list 1 permit 192.168.50.0 0.0.0.255
+access-list 1 permit 192.168.60.0 0.0.0.255
