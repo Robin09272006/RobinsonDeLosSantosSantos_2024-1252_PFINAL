@@ -1,0 +1,133 @@
+hostname R2
+!
+boot-start-marker
+boot-end-marker
+!
+!
+!
+no aaa new-model
+ethernet lmi ce
+!
+!
+!
+mmi polling-interval 60
+no mmi auto-configure
+no mmi pvc
+mmi snmp-timeout 180
+!
+!
+!
+!
+!
+no ip icmp rate-limit unreachable
+!
+!
+!
+!
+!
+!
+no ip domain lookup
+ip cef
+no ipv6 cef
+!
+multilink bundle-name authenticated
+!
+!
+!
+!
+!
+redundancy
+!
+no cdp log mismatch duplex
+!
+ip tcp synwait-time 5
+!
+!
+crypto ikev2 proposal IKEV2_PROP
+ encryption aes-cbc-256
+ integrity sha256
+ group 14
+!
+crypto ikev2 policy IKEV2_POL
+ proposal IKEV2_PROP
+!
+crypto ikev2 keyring DMVPN_KEYRING
+ peer ANY
+  address 0.0.0.0 0.0.0.0
+  pre-shared-key local Itla1252
+  pre-shared-key remote Itla1252
+ !
+!
+!
+crypto ikev2 profile IKEV2_PROF
+ match identity remote address 0.0.0.0
+ identity local fqdn 2024-1252
+ authentication local pre-share
+ authentication remote pre-share
+ keyring local DMVPN_KEYRING
+!
+!
+!
+crypto ipsec transform-set TS esp-aes 256 esp-sha256-hmac
+ mode transport
+!
+crypto ipsec profile DMVPN_IPSEC_PROF
+ set transform-set TS
+ set ikev2-profile IKEV2_PROF
+!
+!
+!
+!
+!
+!
+!
+interface Tunnel0
+ bandwidth 1000
+ ip address 10.12.52.2 255.255.255.252
+ no ip redirects
+ ip mtu 1000
+ ip nhrp network-id 1
+ ip nhrp nhs 10.12.52.1 nbma 203.0.113.2 multicast
+ ip nhrp shortcut
+ ip tcp adjust-mss 960
+ tunnel source GigabitEthernet0/0
+ tunnel mode gre multipoint
+ tunnel protection ipsec profile DMVPN_IPSEC_PROF
+!
+interface GigabitEthernet0/0
+ ip address 203.0.113.6 255.255.255.252
+ duplex auto
+ speed auto
+ media-type rj45
+!
+interface GigabitEthernet0/1
+ ip address 172.16.10.254 255.255.255.0
+ duplex auto
+ speed auto
+ media-type rj45
+!
+interface GigabitEthernet0/2
+ no ip address
+ shutdown
+ duplex auto
+ speed auto
+ media-type rj45
+!
+interface GigabitEthernet0/3
+ no ip address
+ shutdown
+ duplex auto
+ speed auto
+ media-type rj45
+!
+!
+router eigrp 100
+ network 10.12.52.0 0.0.0.3
+ network 172.16.10.0 0.0.0.255
+!
+ip forward-protocol nd
+!
+!
+no ip http server
+no ip http secure-server
+ip route 0.0.0.0 0.0.0.0 203.0.113.5
